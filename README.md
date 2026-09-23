@@ -1,62 +1,51 @@
-# Salvage League
+# Salvage League — The Pale Relay
 
-A desktop browser prototype for 1–4 players. Explore the Pale Relay together, fill a spatial inventory, then escape an awakened station. The richest extracted survivor wins. Built with Canvas, Vite and PeerJS; no game backend is required.
+A four-player browser stealth heist with a competitive escape. Work together to reach an ancient core, pack your salvage, then decide who gets left behind. The richest extracted survivor wins.
 
-## Play online
+**Play: https://sorakamafaka.github.io/SpaceyGame/**
 
-Open **https://sorakamafaka.github.io/SpaceyGame/**. Choose **Host expedition**, share the eight-character code, and have three friends choose **Join crew**. The host starts the match. **Solo recon** works without signaling, but the archive and reliquary require teammates during salvage.
-
-The project is deployed to GitHub Pages. Browser testing uses the deployed site; no local server is started by the test runner.
+Host an expedition and share the eight-character room code. Up to three friends join before deployment. Solo recon assists two-person mechanisms so you can explore the full expedition alone.
 
 ## Controls
 
-| Key           | Action                                                                                          |
-| ------------- | ----------------------------------------------------------------------------------------------- |
-| WASD / arrows | Move                                                                                            |
-| E             | Use the hovered nearby object, or the nearest available object; hold for cooperative mechanisms |
-| Tab           | Open or close cargo                                                                             |
-| R             | Rotate selected cargo; click its current position or an empty cell to place                     |
-| Mouse hover   | Explain the action, its consequences, and whether it is available                               |
+- WASD / arrows: move. Cargo never slows you down.
+- Hover objects: see what they do and their consequences.
+- E: use the hovered nearby object, or nearest available object. Hold E for cooperative mechanisms.
+- Tab: cargo grid. Drag or select an item and click a cell; R rotates. Drop unwanted cargo for others to collect.
+- Sound button: toggle synthesized sound cues. Noise and hazards also have visual cues.
 
-Inventory: 8×5 cells, rectangular salvage, rotation, drag-and-drop, and click placement. Select an item and use **Drop item** to leave it for another player. Packing does not pause the game. Carried weight reduces movement speed; value, weight and footprint differ between items.
+## Your expedition
 
-## The expedition
+1. Recover the two **power cells** in Engineering and Storage. Each uses 1×2 inventory cells. Install them into the two **vault circuits** in the Power Junction. Cells can be dropped, traded, or recovered from fallen crew.
+2. Negotiate the **security crossing**. One player holds the shutter control while others cross; it remains safe for six seconds after release, allowing the operator to follow. Beams flash amber before becoming dangerous.
+3. Open the **salvage wing seal** with two crew holding E. Hold the extraction stabilizer while a teammate takes the 900-credit quantum assembly. Taking it without help triggers a large alarm. Forced caches offer extra loot at the cost of noise.
+4. Prepare your return. The salvage-wing console permanently opens a maintenance shortcut back to the shuttle. At the junction, choose **one** emergency circuit: the single-use lift, or the permanent service-loop bridge. This choice is irreversible.
+5. Two players hold the separate **core restraints** for two seconds. They latch open permanently. The core needs 2×3 inventory space. Press E, read the warning, and press E again within five seconds to extract it and wake the creature.
+6. Escape! Shutters cycle faster and steam vents become active. The beast investigates sounds, pursues visible crew and their last known positions, and warns before lunging. Walls and doors block sight; breaking contact can lose it. The shuttle bay is protected.
+7. E boards the shuttle permanently. Release E, then press E again to begin the irreversible 20-second departure countdown. There are four seats. After three minutes of evacuation the station collapses, extracting only those already aboard.
 
-- Open the archive seal by holding E with two nearby players for two seconds.
-- Hold the yellow reactor override to let another player through the reliquary seals.
-- Salvage and elapsed time increase disturbance. At 100%, the ancient hunter wakes. The override seals release for evacuation.
-- Return by foot or consume the lift's single emergency charge to reach the shuttle bay instantly. Sealed routes can be waited out or bypassed through the service loop where available.
-- The shuttle bay is protected. E boards; boarding is final. Release E, then press E again at the departure console to start the irreversible 20-second launch countdown. All four players can survive.
-- Three minutes after awakening, the station collapses even if nobody has launched. Boarded survivors escape; everyone else loses their haul. Tied top scores share victory.
-- Dead players drop cargo and spectate. A disconnected player loses carried salvage unless already aboard. Host departure ends the session; no host migration or reconnection in this MVP.
+**Premature awakening:** machinery alarms, loose metal underfoot, security beams and full drone detection raise disturbance. Quiet play slowly reduces it; time alone and ordinary loot pickup never wake the creature. At 100%, it wakes immediately and the core locks down. Escape with what you have. Mandatory vault seals release, so no one needs a living teammate to get out.
 
-## Multiplayer hosting
+**Stealth:** avoid the drone's visible sight cone. Detection builds gradually and falls when you break sight. Noise rings show the location and severity of sounds; the drone investigates them. Ordinary walking has no noise penalty.
 
-The host browser simulates the game and validates actions. Guests send inputs over WebRTC and receive state snapshots at 20 Hz. Public PeerJS Cloud provides signaling; it does not run the game. Keep the host tab visible: browsers throttle background tabs. This is a friends-only prototype, without authentication or anti-cheat protection against the host.
+**Scoring:** carried salvage scores only if you survive aboard. The core is worth 1,200 credits to its carrier; extracting it also gives **every survivor 200 credits**. Ties share victory. Dead crew drop cargo. A disconnected player drops cargo unless already aboard.
 
-Internet access to PeerJS Cloud is required to create/join rooms. Direct WebRTC can fail behind restrictive firewalls/NAT. To add your own TURN service, configure `VITE_ICE_SERVERS` as a JSON array of RTCIceServer objects in `.env.local` before building. Browser-bundled credentials are public: use short-lived TURN credentials for a public release. Solo recon needs no signaling.
+## Browser hosting and verification
 
-## Build and GitHub Pages
+GitHub Actions builds and deploys the game, then runs browser checks against the published Pages URL. No local development server is used for testing.
 
 ```sh
-npm run build
-```
-
-`dist/` is the static output. Relative asset URLs support GitHub Pages repository paths. The included workflow assumes **SpaceyGame is the repository root**. Pages uses GitHub Actions. It deploys pushes to `main` or can be run manually. If kept inside a larger repository, adjust the workflow working directory and artifact path.
-
-No installation or service worker is required. Fonts load from Google Fonts, with local fallbacks. All game visuals are code-drawn; there are no downloaded art assets.
-
-## Verification
-
-```sh
+npm ci
 npx playwright install chromium
 npm test
 ```
 
-Browser tests run against GitHub Pages and exercise hover guidance, contextual pickup, inventory manipulation, solo play, a full awakening-to-departure sequence, and a four-browser room via real signaling. The deployment workflow runs these checks after publishing. The multiplayer test needs internet and reachable PeerJS Cloud; it is not a substitute for testing four devices across different networks.
+The suite tests the actual UI (hover, inventory drag/rotation/drop and four-peer rooms) and imports the shipped simulation module into Chromium on the deployed page for deterministic gameplay checks. It covers constant movement speed, noise and premature awakening, power delivery, cooperative restraints, route choices, stabilized extraction, cargo validation, contested lift use, bulkhead sealing, lunge warnings and extraction scoring.
 
-## MVP boundaries
+`npm run build` produces static files in `dist/`. `PLAYWRIGHT_BASE_URL` can select a different hosted deployment. The `simulation` build entry exports the same mechanics used by the game; it does not provide controls for changing an active match.
 
-One fixed station, one hunter, no combat, persistent progression, sound, procedural generation, or voice chat. Use a separate call to coordinate. Match pacing and sabotage balance need four-person playtesting. A solo run can wake the station through time and salvage in the accessible wings.
+PeerJS Cloud provides connection signaling; the host browser runs the authoritative simulation. Keep the host tab open and visible. Direct WebRTC may need a TURN relay on restrictive networks. Configure `VITE_ICE_SERVERS` before building to supply your relay configuration. Browser-visible relay credentials should be short-lived. No host migration or reconnection is implemented. New expedition rooms use a separate protocol prefix from the original prototype; all crew should refresh the site before joining.
 
-References: [PeerJS connections](https://peerjs.com/client/getting-started), [Vite static deployment](https://vite.dev/guide/static-deploy).
+## Current scope
+
+One handcrafted station, one security drone, one ancient creature, spatial inventory, cooperative machinery, optional route preparation and competitive extraction. No combat, procedural generation, permanent progression or built-in voice chat. Use a call for coordination. Visuals are code-drawn; sound is synthesized. Match balance still needs human four-player playtesting.

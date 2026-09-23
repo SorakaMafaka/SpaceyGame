@@ -645,3 +645,46 @@ kbd {
   font-size: 10px;
   color: #efd18d;
 }
+#objectives {
+  position: absolute;
+  left: 25px;
+  top: 280px;
+  width: 245px;
+  background: #091720da;
+  border-left: 2px solid #76adab;
+  padding: 13px 15px;
+  font-size: 10px;
+  line-height: 1.9;
+  color: #adc5ce;
+  pointer-events: none;
+}
+#objectives b {
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: #a6f0c7;
+}
+#objectives small {
+  display: block;
+  margin-top: 8px;
+  color: #829da9;
+  font-size: 9px;
+  line-height: 1.6;
+}
+#sound {
+  position: absolute;
+  right: 20px;
+  top: 142px;
+  padding: 8px 12px;
+  font-size: 9px;
+}
+@media (max-height: 750px) {
+  #objectives {
+    top: 260px;
+    font-size: 9px;
+    width: 225px;
+    padding: 9px 12px;
+  }
+  #events {
+    bottom: 125px;
+  }
+}

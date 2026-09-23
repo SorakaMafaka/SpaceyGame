@@ -56,22 +56,139 @@ export function interactions(s, p) {
     "Use the only remaining charge to return to the shuttle bay. Everyone else must walk.",
     "use",
     false,
-    !s.lift.charges
-      ? "No charges left. Take the long way."
-      : s.phase !== "escape"
-        ? "Available during evacuation."
-        : "",
+    !s.prepared.circuit
+      ? "Choose lift power at the Power Junction first."
+      : !s.lift.charges
+        ? "No charges left. Take the long way."
+        : s.phase !== "escape"
+          ? "Available during evacuation."
+          : "",
   );
+  const allPower = s.sockets.every((c) => c.installed);
+  for (const c of s.cells)
+    if (!c.taken)
+      add(
+        c.id,
+        c,
+        70,
+        "Power cell",
+        "Takes 1×2 cargo space. Install at a vault circuit in the Power Junction.",
+        "expedition",
+      );
+  for (const c of s.sockets)
+    add(
+      c.id,
+      c,
+      75,
+      "Vault circuit",
+      c.installed
+        ? "Power restored."
+        : "Install a carried power cell. Both circuits are needed for vault access.",
+      "expedition",
+      false,
+      c.installed
+        ? "Already restored."
+        : !p.inventory.some((i) => i.kind === "power")
+          ? "Bring a power cell from Engineering or Storage."
+          : "",
+    );
   add(
-    "switch",
-    s.switch,
+    "security",
+    s.consoles[0],
     75,
-    "Manual override",
-    "Keep holding E to open both reliquary seals for your teammates.",
+    "Security shutter control",
+    "Hold E to suppress the crossing beams. Shutters stay safe for six seconds after release so you can cross too.",
     "hold",
     true,
-    s.phase === "escape" ? "Emergency release is already active." : "",
   );
+  add(
+    "maintenance-console",
+    s.consoles[1],
+    75,
+    "Maintenance shortcut",
+    "Unlock a permanent passage from Engineering back to the shuttle.",
+    "expedition",
+    false,
+    s.prepared.maintenance ? "Shortcut is open." : "",
+  );
+  for (const c of s.consoles.slice(2))
+    add(
+      c.id,
+      c,
+      75,
+      c.id === "circuit-lift" ? "Power emergency lift" : "Power service bridge",
+      "Choose one escape route: a single-use lift OR a permanent bridge across the service loop. This choice cannot be changed.",
+      "expedition",
+      false,
+      s.prepared.circuit
+        ? `Power committed to ${s.prepared.circuit}.`
+        : !allPower
+          ? "Restore both vault circuits first."
+          : "",
+    );
+  add(
+    "stabilizer",
+    s.stabilizer,
+    75,
+    "Extraction stabilizer",
+    "Hold E while another player extracts the quantum assembly to prevent a loud alarm.",
+    "hold",
+    true,
+    s.salvage.taken ? "Assembly already extracted." : "",
+  );
+  if (!s.salvage.taken)
+    add(
+      "salvage-machine",
+      s.salvage,
+      70,
+      "Quantum assembly",
+      "900 credits · 2×3 cargo. Have someone hold the stabilizer. Extracting without help causes a major alarm.",
+      "expedition",
+    );
+  for (const c of s.containers)
+    if (!c.opened)
+      add(
+        c.id,
+        c,
+        70,
+        "Sealed salvage container",
+        "Force this container for valuable loot. The noise raises disturbance and attracts the drone.",
+        "expedition",
+      );
+  for (const l of s.locks)
+    add(
+      l.id,
+      l,
+      75,
+      "Core restraint",
+      "Two players hold separate restraints for two seconds. Once released, both stay open. Solo recon latches them one at a time.",
+      "hold",
+      true,
+      s.core.unlocked
+        ? "Restraints released."
+        : !allPower
+          ? "Restore both vault circuits first."
+          : s.phase !== "salvage"
+            ? "Core sealed by emergency lockdown."
+            : "",
+    );
+  if (!s.core.taken)
+    add(
+      "core",
+      s.core,
+      75,
+      "Ancient core",
+      p.coreConfirmUntil > s.time
+        ? "CONFIRM EXTRACTION: press E again. The creature will wake immediately."
+        : "1200 credits · 2×3 cargo. WARNING: extraction wakes the creature. Extracting the core also pays every survivor 200 credits.",
+      "expedition",
+      false,
+      s.phase !== "salvage"
+        ? "Emergency lockdown. Escape with your salvage."
+        : !s.core.unlocked
+          ? "Release both core restraints first."
+          : "",
+    );
   for (const d of s.doors) {
     const duo = d.kind === "duo" && !d.open && s.phase === "salvage";
     add(
@@ -89,7 +206,7 @@ export function interactions(s, p) {
         : !duo && s.phase !== "escape"
           ? d.open
             ? "Passage is open. Sealing is available during evacuation."
-            : "A teammate must hold the reactor override."
+            : "Restore both vault circuits to open this passage."
           : "",
     );
   }
@@ -99,7 +216,7 @@ export function interactions(s, p) {
       i,
       70,
       i.name,
-      `${i.value} credits · ${i.weight} kg · ${i.w}×${i.h} cargo space. Pick up into your inventory.`,
+      `${i.value} credits · ${i.w}×${i.h} cargo space. Pick up into your inventory.`,
       "pickup",
     );
   return objects;

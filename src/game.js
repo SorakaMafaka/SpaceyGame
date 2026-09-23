@@ -1,3 +1,10 @@
+import {
+  createExpedition,
+  updateExpedition,
+  expeditionAction,
+  emitNoise,
+  coreBonus,
+} from "./expedition.js";
 import { selectInteraction } from "./interactions.js";
 export const TILE = 48,
   COLS = 38,
@@ -5,11 +12,11 @@ export const TILE = 48,
 export const COLORS = ["#55e9bc", "#79bdff", "#ffbc6b", "#dba3ff"];
 export const ROOMS = [
   { x: 1, y: 9, w: 7, h: 7, name: "01 / SHUTTLE", tone: "#143038" },
-  { x: 10, y: 9, w: 7, h: 7, name: "02 / TRANSIT", tone: "#202d33" },
+  { x: 10, y: 9, w: 7, h: 7, name: "02 / SECURITY", tone: "#202d33" },
   { x: 10, y: 1, w: 7, h: 6, name: "03 / ENGINEERING", tone: "#29312d" },
-  { x: 20, y: 1, w: 8, h: 6, name: "04 / ARCHIVE", tone: "#242a37" },
-  { x: 20, y: 9, w: 8, h: 7, name: "05 / REACTOR", tone: "#30302b" },
-  { x: 31, y: 9, w: 6, h: 7, name: "06 / RELIQUARY", tone: "#332938" },
+  { x: 20, y: 1, w: 8, h: 6, name: "04 / SALVAGE", tone: "#242a37" },
+  { x: 20, y: 9, w: 8, h: 7, name: "05 / POWER JUNCTION", tone: "#30302b" },
+  { x: 31, y: 9, w: 6, h: 7, name: "06 / CORE VAULT", tone: "#332938" },
   { x: 10, y: 19, w: 7, h: 5, name: "07 / STORAGE", tone: "#29302d" },
   { x: 20, y: 19, w: 17, h: 5, name: "08 / SERVICE LOOP", tone: "#242c32" },
 ];
@@ -21,6 +28,8 @@ export function mapTiles() {
   ROOMS.forEach((r) => carve(r.x, r.y, r.w, r.h));
   [
     [8, 11, 2, 2],
+    [5, 4, 5, 2],
+    [5, 6, 2, 3],
     [13, 7, 2, 2],
     [17, 3, 3, 2],
     [17, 11, 3, 2],
@@ -62,7 +71,6 @@ export function createGame() {
         w: t[1],
         h: t[2],
         value: t[3],
-        weight: t[4],
         color: t[5],
         ...at(
           r.x + 1 + ((j * 2) % (r.w - 2)),
@@ -72,12 +80,21 @@ export function createGame() {
     }
   }
   return {
+    ...createExpedition(),
     phase: "lobby",
     time: 0,
     disturbance: 0,
     players: [],
     loot,
     doors: [
+      {
+        id: "maintenance",
+        ...at(8, 4),
+        kind: "maintenance",
+        open: false,
+        locked: 0,
+      },
+      { id: "bridge", ...at(29, 21), kind: "bridge", open: false, locked: 0 },
       {
         id: "duo",
         ...at(18, 3),
@@ -112,10 +129,21 @@ export function createGame() {
         locked: 0,
       },
     ],
-    switch: { ...at(25, 10) },
-    lift: { ...at(34, 13), charges: 1 },
+    switch: { ...at(23, 5) },
+    lift: { ...at(34, 13), charges: 0 },
     shuttle: { ...at(3, 12) },
-    monster: { ...at(34, 11), active: false, path: [], repath: 0 },
+    monster: {
+      ...at(35, 10),
+      active: false,
+      path: [],
+      repath: 0,
+      memory: 0,
+      lastSeen: null,
+      windup: 0,
+      cooldown: 3,
+      charge: 0,
+      aim: null,
+    },
     launch: null,
     escapeLeft: 180,
     logs: ["Docking complete. No life signs detected."],
@@ -141,6 +169,9 @@ export function addPlayer(s, id, name) {
     aboard: false,
     connected: true,
     hp: 100,
+    detection: 0,
+    noiseCooldown: 0,
+    coreConfirmUntil: 0,
     hit: 0,
     input: { dx: 0, dy: 0, interact: false },
     inputAt: 0,
@@ -150,7 +181,8 @@ export function addPlayer(s, id, name) {
   s.players.push(p);
   return p;
 }
-export const weight = (p) => p.inventory.reduce((v, i) => v + i.weight, 0);
+export const score = (s, p) =>
+  value(p) + (p.alive && p.aboard ? coreBonus(s) : 0);
 export const value = (p) => p.inventory.reduce((v, i) => v + i.value, 0);
 export function fits(items, item, x, y, w = item.w, h = item.h) {
   return (
@@ -177,10 +209,10 @@ export function firstFit(items, item) {
   return null;
 }
 export const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-function log(s, t) {
+export function log(s, t) {
   s.logs = [t, ...s.logs].slice(0, 6);
 }
-function note(s, p, t) {
+export function note(s, p, t) {
   p.note = t;
   p.noteUntil = s.time + 3;
 }
@@ -204,13 +236,23 @@ export function walkable(s, x, y, r = 12) {
 export function start(s) {
   if (s.phase !== "lobby" || !s.players.length) return;
   s.phase = "salvage";
-  log(s, "Find salvage. Hold E together at the archive seal.");
+  log(
+    s,
+    "Find two power cells. Restore both vault circuits. Prepare your escape.",
+  );
 }
 export function awaken(s) {
   if (s.phase !== "salvage") return;
   s.phase = "escape";
   s.disturbance = 100;
   s.monster.active = true;
+  s.monster.lastSeen = { x: s.core.x, y: s.core.y };
+  s.monster.memory = 20;
+  for (const d of s.doors)
+    if (["override", "duo"].includes(d.kind)) {
+      d.open = true;
+      d.locked = 0;
+    }
   log(s, "IT IS AWAKE. Return to the shuttle. Trust is optional.");
 }
 export function action(s, id, a) {
@@ -221,6 +263,7 @@ export function action(s, id, a) {
       dx: Number.isFinite(a.dx) ? Math.max(-1, Math.min(1, a.dx)) : 0,
       dy: Number.isFinite(a.dy) ? Math.max(-1, Math.min(1, a.dy)) : 0,
       interact: !!a.interact,
+      target: typeof a.target === "string" ? a.target : null,
     };
     p.inputAt = s.time;
     return;
@@ -234,6 +277,7 @@ export function action(s, id, a) {
       action(s, id, { type: target.command, target: target.id });
     return;
   }
+  if (expeditionAction(s, p, a)) return;
   if (a.type === "moveItem") {
     const i = p.inventory.find((i) => i.id === a.id);
     if (!i) return;
@@ -278,8 +322,7 @@ export function action(s, id, a) {
     }
     p.inventory.push({ ...i, ...pos });
     s.loot = s.loot.filter((j) => j.id !== i.id);
-    if (s.phase === "salvage")
-      s.disturbance = Math.min(100, s.disturbance + 2.5 + i.value / 150);
+
     note(s, p, `Recovered ${i.name}`);
   }
   if (a.type === "use") {
@@ -316,11 +359,12 @@ export function action(s, id, a) {
     if (d) {
       d.locked = 7;
       d.open = false;
+      emitNoise(s, d, 18, "Bulkhead slam");
       log(s, `${p.name} sealed a bulkhead for 7 seconds.`);
     } else note(s, p, "Get closer to an unlocked bulkhead.");
   }
 }
-function pathfind(s, from, to) {
+export function pathfind(s, from, to) {
   const key = (x, y) => y * COLS + x;
   const sx = Math.floor(from.x / TILE),
     sy = Math.floor(from.y / TILE),
@@ -364,9 +408,9 @@ function pathfind(s, from, to) {
 export function finish(s) {
   s.phase = "ended";
   const survivors = s.players.filter((p) => p.alive && p.aboard);
-  const best = Math.max(0, ...survivors.map(value));
+  const best = Math.max(0, ...survivors.map((p) => score(s, p)));
   s.result = {
-    winners: survivors.filter((p) => value(p) === best).map((p) => p.id),
+    winners: survivors.filter((p) => score(s, p) === best).map((p) => p.id),
   };
   log(
     s,
@@ -386,88 +430,47 @@ export function tick(s, dt) {
       d.open = false;
       continue;
     }
-    if (d.kind === "duo") {
-      if (!d.open) {
-        const count = active.filter(
-          (p) =>
-            distance(p, d) < 120 &&
-            p.input.interact &&
-            s.time - p.inputAt < 0.5,
-        ).length;
-        d.progress = Math.max(
-          0,
-          Math.min(2, d.progress + (count >= 2 ? dt : -dt * 0.5)),
-        );
-        if (d.progress >= 2) {
-          d.open = true;
-          log(s, "Archive seal released.");
-        }
-      }
-    } else if (d.kind === "override") {
-      d.open =
-        active.some(
-          (p) =>
-            distance(p, s.switch) < 75 &&
-            p.input.interact &&
-            s.time - p.inputAt < 0.5,
-        ) || s.phase === "escape";
+    if (d.kind === "maintenance") d.open = s.prepared.maintenance;
+    else if (d.kind === "bridge") d.open = s.prepared.circuit === "bridge";
+    else if (d.kind === "override")
+      d.open = s.sockets.every((x) => x.installed) || s.phase === "escape";
+    else if (d.kind === "duo") {
+      const holders = active.filter(
+        (p) =>
+          distance(p, d) < 120 &&
+          p.input.interact &&
+          p.input.target === d.id &&
+          s.time - p.inputAt < 0.5,
+      );
+      d.progress = Math.max(
+        0,
+        Math.min(
+          2,
+          d.progress +
+            (holders.length >= (s.players.length === 1 ? 1 : 2)
+              ? dt
+              : -dt * 0.5),
+        ),
+      );
+      if (d.progress >= 2 || s.phase === "escape") d.open = true;
     } else d.open = true;
   }
   for (const p of active) {
     p.hit = Math.max(0, p.hit - dt);
     const input = s.time - p.inputAt < 0.5 ? p.input : { dx: 0, dy: 0 };
     const norm = Math.max(1, Math.hypot(input.dx, input.dy)),
-      speed = 180 / (1 + weight(p) * 0.022),
+      speed = 180,
       dx = (input.dx / norm) * speed * dt,
       dy = (input.dy / norm) * speed * dt;
     if (walkable(s, p.x + dx, p.y)) p.x += dx;
     if (walkable(s, p.x, p.y + dy)) p.y += dy;
   }
-  if (s.phase === "salvage") {
-    s.disturbance = Math.min(100, s.disturbance + dt * 0.19);
-    if (s.disturbance >= 100) awaken(s);
-  } else {
+  updateExpedition(s, dt, active);
+  if (s.phase === "salvage" && s.disturbance >= 100) awaken(s);
+  if (s.phase === "escape") {
     s.escapeLeft -= dt;
     if (s.launch !== null) s.launch = Math.max(0, s.launch - dt);
-    const m = s.monster;
-    m.repath -= dt;
-    const targets = active.filter((p) => p.x > 8 * TILE);
-    if (m.repath <= 0) {
-      m.repath = 0.65;
-      const target = targets.sort((a, b) => distance(m, a) - distance(m, b))[0];
-      m.path = target ? pathfind(s, m, target) : [];
-    }
-    if (m.path.length) {
-      const t = m.path[0],
-        d = distance(m, t),
-        step = 145 * dt;
-      if (d < step) m.path.shift();
-      else {
-        const nx = m.x + ((t.x - m.x) / d) * step,
-          ny = m.y + ((t.y - m.y) / d) * step;
-        if (walkable(s, nx, ny, 8)) {
-          m.x = nx;
-          m.y = ny;
-        } else m.repath = 0;
-      }
-    }
-    for (const p of targets) {
-      if (distance(p, m) < 35 && p.hit === 0) {
-        p.hp -= 40;
-        p.hit = 1.2;
-        if (p.hp <= 0) {
-          p.alive = false;
-          s.loot.push(...p.inventory.map((i) => ({ ...i, x: p.x, y: p.y })));
-          p.inventory = [];
-          log(s, `${p.name}'s signal was lost.`);
-        }
-      }
-    }
-    if (
-      s.launch === 0 ||
-      s.escapeLeft <= 0 ||
-      !s.players.some((p) => p.alive && p.connected)
-    )
-      finish(s);
+    if (s.launch === 0 || s.escapeLeft <= 0) finish(s);
   }
+  if (!s.players.some((p) => p.alive && p.connected)) finish(s);
 }

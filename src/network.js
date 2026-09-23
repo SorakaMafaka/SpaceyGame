@@ -46,7 +46,7 @@ export class Network {
   async host() {
     this.isHost = true;
     this.code = crypto.randomUUID().slice(0, 8).toUpperCase();
-    await this.open("salvage-v1-" + this.code);
+    await this.open("salvage-v2-" + this.code);
     this.peer.on("connection", (c) => {
       c.on("open", () => {
         this.links.set(c.peer, c);
@@ -64,7 +64,7 @@ export class Network {
   async join(code, name) {
     await this.open();
     this.code = code.toUpperCase().trim();
-    const c = this.peer.connect("salvage-v1-" + this.code, {
+    const c = this.peer.connect("salvage-v2-" + this.code, {
       reliable: true,
       serialization: "json",
       metadata: { name },
