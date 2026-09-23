@@ -67,6 +67,7 @@ test("nearby objects explain their action on hover and use only E", async ({
   await page.goto("./");
   await page.locator("#practice").click();
   await page.locator("#start").click();
+  await expect(page.locator("#room-panel")).toBeHidden();
   await page.mouse.move(640, 316);
   await expect(page.getByRole("tooltip")).toBeVisible();
   await expect(page.getByRole("tooltip")).toContainText("Board shuttle");
