@@ -50,7 +50,7 @@ No installation or service worker is required. Fonts load from Google Fonts, wit
 
 ```sh
 npx playwright install chromium
-npx playwright test
+npm test
 ```
 
 Browser tests run against GitHub Pages and exercise hover guidance, contextual pickup, inventory manipulation, solo play, a full awakening-to-departure sequence, and a four-browser room via real signaling. The deployment workflow runs these checks after publishing. The multiplayer test needs internet and reachable PeerJS Cloud; it is not a substitute for testing four devices across different networks.
