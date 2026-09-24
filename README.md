@@ -48,4 +48,4 @@ PeerJS Cloud provides connection signaling; the host browser runs the authoritat
 
 ## Current scope
 
-One handcrafted station, one security drone, one ancient creature, spatial inventory, cooperative machinery, optional route preparation and competitive extraction. No combat, procedural generation, permanent progression or built-in voice chat. Use a call for coordination. Visuals are code-drawn; sound is synthesized. Match balance still needs human four-player playtesting.
+One handcrafted station, one security drone, one ancient creature, spatial inventory, cooperative machinery, optional route preparation and competitive extraction. No combat, procedural generation, permanent progression or built-in voice chat. Use a call for coordination. In-game pixel sprites and station surfaces are code-drawn; the title illustration was generated with imagegen. Sound is synthesized. See [art direction and asset provenance](docs/ART_DIRECTION.md). Match balance still needs human four-player playtesting.

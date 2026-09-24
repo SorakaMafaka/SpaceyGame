@@ -1,3 +1,4 @@
+import { drawSprite } from "./art.js";
 import { hazardState } from "./expedition.js";
 import { walkable } from "./game.js";
 let audio = null,
@@ -43,14 +44,33 @@ export function playCues(s) {
     if (s.phase === "ended") tone(440, 0.5);
   }
 }
-export function drawExpedition(ctx, s, text, rect) {
+export function drawExpedition(ctx, s, text, rect, viewer) {
   const symbol = (o, label, color, icon = "E") => {
-    rect(o.x - 17, o.y - 17, 34, 34, "#11232c");
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(o.x - 17, o.y - 17, 34, 34);
-    text(icon, o.x, o.y + 5, 16, color, "center");
-    text(label, o.x, o.y + 33, 9, color, "center");
+    const kind =
+      o === s.core
+        ? "core"
+        : o === s.salvage
+          ? "assembly"
+          : s.cells.includes(o)
+            ? "cell"
+            : s.sockets.includes(o)
+              ? "socket"
+              : s.containers.includes(o)
+                ? "cache"
+                : s.locks.includes(o)
+                  ? "lock"
+                  : "console";
+    ctx.fillStyle = "#07111a88";
+    ctx.beginPath();
+    ctx.ellipse(o.x + 2, o.y + 15, 21, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+    drawSprite(ctx, kind, o.x, o.y, color, o === s.salvage ? 56 : 42);
+    if (viewer && Math.hypot(viewer.x - o.x, viewer.y - o.y) < 145) {
+      ctx.shadowColor = "#101822";
+      ctx.shadowBlur = 3;
+      text(label, o.x, o.y + 34, 9, color, "center");
+      ctx.shadowBlur = 0;
+    }
   };
   for (const h of s.hazards) {
     const state = hazardState(s, h),
@@ -114,7 +134,6 @@ export function drawExpedition(ctx, s, text, rect) {
     );
   symbol(s.stabilizer, "HOLD / STABILIZE", "#f6c16e");
   if (!s.salvage.taken) {
-    rect(s.salvage.x - 24, s.salvage.y - 27, 48, 54, "#625746");
     symbol(s.salvage, "QUANTUM ASSEMBLY", "#ffd086", "◈");
   }
   for (const c of s.containers)
@@ -138,15 +157,6 @@ export function drawExpedition(ctx, s, text, rect) {
     ctx.shadowBlur = 0;
   }
   const m = s.monster;
-  if (!m.active) {
-    ctx.strokeStyle = "#854465";
-    ctx.lineWidth = 12;
-    ctx.beginPath();
-    ctx.ellipse(m.x, m.y, 55 + Math.sin(s.time) * 3, 38, 0, 0, Math.PI * 1.8);
-    ctx.stroke();
-    ctx.lineWidth = 2;
-    text("DORMANT", m.x, m.y - 55, 10, "#d788ac", "center");
-  }
   if (m.windup > 0 && m.aim) {
     ctx.strokeStyle = "#ffcd86";
     ctx.lineWidth = 22;
@@ -173,8 +183,16 @@ export function drawExpedition(ctx, s, text, rect) {
   ctx.save();
   ctx.translate(d.x, d.y);
   ctx.rotate(d.angle);
-  rect(-13, -10, 26, 20, "#d5b67d");
-  rect(5, -4, 14, 8, "#ff677f");
+  rect(-17, -13, 34, 26, "#111e26");
+  rect(-15, -10, 29, 20, "#a2a387");
+  rect(-9, -8, 15, 16, "#5d7370");
+  rect(-5, -5, 14, 10, "#c8c9a8");
+  rect(9, -5, 9, 10, "#1c2e39");
+  rect(12, -3, 7, 6, "#eeaf6c");
+  rect(-12, -17, 8, 5, "#435d60");
+  rect(-12, 12, 8, 5, "#435d60");
+  rect(5, -15, 7, 4, "#788e80");
+  rect(5, 11, 7, 4, "#788e80");
   ctx.restore();
   text(
     d.interest > 0 ? "INVESTIGATING" : "PATROL",
