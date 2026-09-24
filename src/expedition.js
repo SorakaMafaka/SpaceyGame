@@ -394,7 +394,8 @@ export function updateExpedition(s, dt, active) {
     d.path = pathfind(s, d, target);
   }
   if (d.path.length) d.angle = Math.atan2(d.path[0].y - d.y, d.path[0].x - d.x);
-  if (d.windup <= 0) follow(s, d, tracking ? 105 : 65, dt);
+  if (d.windup <= 0 && (!tracking || distance(d, tracked) > 100))
+    follow(s, d, tracking ? 105 : 65, dt);
   if (tracking && lineOfSight(s, d, tracked))
     d.angle = Math.atan2(tracked.y - d.y, tracked.x - d.x);
   for (const p of active) {

@@ -171,3 +171,22 @@ test("inspecting hazards never steals the default E interaction from actual cont
     control: "CONTROL",
   });
 });
+
+test("drone holds firing distance and keeps pressuring an exposed player", async ({
+  page,
+}) => {
+  const r = await scenario(page, (g) => {
+    const s = g.createGame(),
+      p = g.addPlayer(s, "p", "Crew");
+    g.start(s);
+    const d = s.drone;
+    d.repath = 999;
+    d.angle = 0;
+    p.x = d.x + 100;
+    p.y = d.y;
+    for (let i = 0; i < 100; i++) g.tick(s, 0.1);
+    return { hp: p.hp, distance: g.distance(d, p) };
+  });
+  expect(r.hp).toBeLessThanOrEqual(70);
+  expect(r.distance).toBeGreaterThan(70);
+});
