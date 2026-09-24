@@ -2,3 +2,4 @@
 export * from "./game.js";
 export * from "./expedition.js";
 export * from "./interactions.js";
+export { drawCreature, drawLoot, drawSprite } from "./art.js";

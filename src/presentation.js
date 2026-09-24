@@ -4,7 +4,8 @@ import { walkable } from "./game.js";
 let audio = null,
   enabled = true,
   lastNoise = 0,
-  lastPhase = "lobby";
+  lastPhase = "lobby",
+  lastShot = 0;
 export function enableAudio() {
   try {
     audio ||= new (window.AudioContext || window.webkitAudioContext)();
@@ -34,6 +35,8 @@ function tone(freq, duration, shape = "sine") {
   o.stop(audio.currentTime + duration);
 }
 export function playCues(s) {
+  if (s.drone.windup > 0 && !lastShot) tone(650, 0.45, "sawtooth");
+  lastShot = s.drone.windup;
   if (s.noiseSeq > lastNoise) {
     lastNoise = s.noiseSeq;
     tone(150 + s.noises.at(-1)?.power * 8, 0.18, "triangle");
@@ -64,8 +67,29 @@ export function drawExpedition(ctx, s, text, rect, viewer) {
     ctx.beginPath();
     ctx.ellipse(o.x + 2, o.y + 15, 21, 8, 0, 0, Math.PI * 2);
     ctx.fill();
-    drawSprite(ctx, kind, o.x, o.y, color, o === s.salvage ? 56 : 42);
-    if (viewer && Math.hypot(viewer.x - o.x, viewer.y - o.y) < 145) {
+    const fixed = kind === "console" || kind === "socket" || kind === "lock";
+    if (fixed) {
+      rect(o.x - 24, o.y + 13, 48, 12, "#0b1720");
+      rect(o.x - 24, o.y + 13, 48, 3, "#648a9b");
+      rect(o.x - 21, o.y + 19, 5, 3, "#a5c7d1");
+      rect(o.x + 16, o.y + 19, 5, 3, "#a5c7d1");
+    }
+    drawSprite(
+      ctx,
+      kind,
+      o.x,
+      o.y,
+      color,
+      o === s.salvage ? 56 : fixed ? 50 : 34,
+    );
+    if (kind === "console")
+      text("CONTROL", o.x, o.y - 31, 9, "#9dd5ee", "center");
+    if (s.cells.includes(o))
+      text("MISSION ITEM", o.x, o.y - 25, 9, "#9df5db", "center");
+    if (
+      viewer &&
+      (kind === "console" || Math.hypot(viewer.x - o.x, viewer.y - o.y) < 160)
+    ) {
       ctx.shadowColor = "#101822";
       ctx.shadowBlur = 3;
       text(label, o.x, o.y + 34, 9, color, "center");
@@ -80,9 +104,33 @@ export function drawExpedition(ctx, s, text, rect, viewer) {
           : state === "warning"
             ? "#ffd078"
             : "#52736a";
-    ctx.fillStyle = color + (state === "active" ? "99" : "33");
+    ctx.fillStyle = color + (state === "active" ? "cc" : "44");
     if (h.kind === "scanner") {
       ctx.fillRect(h.x - 7, h.y - h.length, 14, h.length * 2);
+      for (const side of [-1, 1]) {
+        rect(h.x - 17, h.y + side * h.length - 8, 34, 16, "#152632");
+        rect(h.x - 12, h.y + side * h.length - 4, 24, 8, color);
+      }
+      if (state === "active")
+        rect(h.x - 2, h.y - h.length, 4, h.length * 2, "#ffe7db");
+      if (
+        viewer &&
+        Math.abs(viewer.x - h.x) < 150 &&
+        Math.abs(viewer.y - h.y) < h.length + 70
+      ) {
+        text(
+          state === "safe"
+            ? "SAFE TO CROSS"
+            : state === "warning"
+              ? "WAIT — ACTIVATING"
+              : "DANGER · 10 HP + ALARM",
+          h.x,
+          h.y + 22,
+          10,
+          color,
+          "center",
+        );
+      }
       text(
         state === "safe"
           ? "CROSSING CLEAR"
@@ -103,6 +151,12 @@ export function drawExpedition(ctx, s, text, rect, viewer) {
     }
   }
   for (const d of s.debris) {
+    ctx.strokeStyle = "#d8ae60";
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.strokeRect(d.x - 25, d.y - 25, 50, 50);
+    ctx.setLineDash([]);
+    text("NOISE", d.x, d.y + 38, 10, "#e4c380", "center");
     for (let j = 0; j < 5; j++) {
       ctx.save();
       ctx.translate(d.x + ((j % 3) - 1) * 12, d.y + ((j % 2) - 0.5) * 18);
@@ -169,6 +223,21 @@ export function drawExpedition(ctx, s, text, rect, viewer) {
     text("LUNGE", m.x, m.y - 40, 12, "#ffcd86", "center");
   }
   const d = s.drone;
+  if ((d.windup > 0 || d.flash > 0) && d.shot) {
+    ctx.save();
+    ctx.strokeStyle = d.flash > 0 ? "#e4faff" : "#ff7064";
+    ctx.lineWidth = d.flash > 0 ? 5 : 2;
+    ctx.setLineDash(d.flash > 0 ? [] : [7, 5]);
+    let reach = 0;
+    for (; reach < 260; reach += 8)
+      if (!walkable(s, d.x + d.shot.dx * reach, d.y + d.shot.dy * reach, 1))
+        break;
+    ctx.beginPath();
+    ctx.moveTo(d.x, d.y);
+    ctx.lineTo(d.x + d.shot.dx * reach, d.y + d.shot.dy * reach);
+    ctx.stroke();
+    ctx.restore();
+  }
   ctx.beginPath();
   ctx.moveTo(d.x, d.y);
   for (let a = d.angle - 0.65; a <= d.angle + 0.65; a += 0.065) {
@@ -178,7 +247,7 @@ export function drawExpedition(ctx, s, text, rect, viewer) {
     ctx.lineTo(d.x + Math.cos(a) * r, d.y + Math.sin(a) * r);
   }
   ctx.closePath();
-  ctx.fillStyle = "#ffc86a22";
+  ctx.fillStyle = d.mode === "pursuit" ? "#ff665b33" : "#ffc86a22";
   ctx.fill();
   ctx.save();
   ctx.translate(d.x, d.y);
@@ -195,7 +264,13 @@ export function drawExpedition(ctx, s, text, rect, viewer) {
   rect(5, 11, 7, 4, "#788e80");
   ctx.restore();
   text(
-    d.interest > 0 ? "INVESTIGATING" : "PATROL",
+    d.windup > 0
+      ? "FIRING — DODGE"
+      : d.mode === "pursuit"
+        ? "PURSUING"
+        : d.interest > 0
+          ? "INVESTIGATING"
+          : "PATROL",
     d.x,
     d.y - 22,
     9,

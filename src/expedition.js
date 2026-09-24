@@ -65,6 +65,13 @@ export function createExpedition() {
       interest: 0,
       alarmCooldown: 0,
       patrol: 0,
+      targetId: null,
+      pursuit: 0,
+      windup: 0,
+      shotCooldown: 0,
+      shot: null,
+      flash: 0,
+      mode: "patrol",
     },
   };
 }
@@ -111,10 +118,12 @@ export function hazardState(s, h) {
   if (h.kind === "vent" && s.phase !== "escape") return "safe";
   return t < period - 1.6 ? "safe" : t < period - 0.8 ? "warning" : "active";
 }
-function hurt(s, p, amount) {
+function hurt(s, p, amount, source = "Creature attack") {
   if (p.hit > 0 || !p.alive) return;
   p.hp = Math.max(0, p.hp - amount);
   p.hit = 1.2;
+  p.lastDamage = { amount, source, time: s.time };
+  note(s, p, `−${amount} HP · ${source}`);
   if (!p.hp) {
     p.alive = false;
     s.loot.push(...p.inventory.map((i) => ({ ...i, x: p.x, y: p.y })));
@@ -345,7 +354,12 @@ export function updateExpedition(s, dt, active) {
           ? Math.abs(p.x - h.x) < 12 && Math.abs(p.y - h.y) < h.length
           : distance(p, h) < h.length;
       if (contact && p.hit === 0) {
-        hurt(s, p, h.kind === "vent" ? 20 : 10);
+        hurt(
+          s,
+          p,
+          h.kind === "vent" ? 20 : 10,
+          h.kind === "vent" ? "Steam vent" : "Crossing beam",
+        );
         emitNoise(
           s,
           p,
@@ -358,6 +372,19 @@ export function updateExpedition(s, dt, active) {
   const d = s.drone;
   d.interest = Math.max(0, d.interest - dt);
   d.alarmCooldown = Math.max(0, d.alarmCooldown - dt);
+  d.pursuit = Math.max(0, d.pursuit - dt);
+  d.shotCooldown = Math.max(0, d.shotCooldown - dt);
+  d.flash = Math.max(0, d.flash - dt);
+  const tracked = active.find(
+    (p) => p.id === d.targetId && p.alive && p.x > 8 * TILE,
+  );
+  const tracking = tracked && d.pursuit > 0;
+  if (tracking && lineOfSight(s, d, tracked)) {
+    d.investigate = { x: tracked.x, y: tracked.y };
+    d.interest = 5;
+    d.pursuit = 5;
+  }
+  d.mode = tracking ? "pursuit" : d.interest > 0 ? "investigating" : "patrol";
   d.repath -= dt;
   if (d.repath <= 0) {
     d.repath = 0.7;
@@ -367,7 +394,9 @@ export function updateExpedition(s, dt, active) {
     d.path = pathfind(s, d, target);
   }
   if (d.path.length) d.angle = Math.atan2(d.path[0].y - d.y, d.path[0].x - d.x);
-  follow(s, d, 65, dt);
+  if (d.windup <= 0) follow(s, d, tracking ? 105 : 65, dt);
+  if (tracking && lineOfSight(s, d, tracked))
+    d.angle = Math.atan2(tracked.y - d.y, tracked.x - d.x);
   for (const p of active) {
     const a = Math.atan2(p.y - d.y, p.x - d.x),
       delta = Math.atan2(Math.sin(a - d.angle), Math.cos(a - d.angle));
@@ -379,13 +408,55 @@ export function updateExpedition(s, dt, active) {
     );
     if (p.detection >= 100 && !d.alarmCooldown) {
       d.alarmCooldown = 7;
-      p.detection = 25;
+      p.detection = 100;
+      d.targetId = p.id;
+      d.pursuit = 5;
+      d.repath = 0;
+      d.mode = "pursuit";
       emitNoise(s, p, 30, "Drone detection alarm");
-      log(s, `${p.name} was detected. Break line of sight!`);
+      log(
+        s,
+        `${p.name} detected! Drone pursuing. Break sight or dodge the shock shot.`,
+      );
+      note(s, p, "DETECTED · Drone pursuing. Break line of sight!");
     }
   }
+  if (d.windup > 0) {
+    d.windup = Math.max(0, d.windup - dt);
+    if (d.windup === 0 && d.shot) {
+      d.flash = 0.22;
+      d.shotCooldown = 2.4;
+      for (const p of active) {
+        const vx = p.x - d.x,
+          vy = p.y - d.y,
+          along = vx * d.shot.dx + vy * d.shot.dy,
+          across = Math.abs(vx * d.shot.dy - vy * d.shot.dx);
+        if (
+          p.x > 8 * TILE &&
+          along > 0 &&
+          along < 260 &&
+          across < 18 &&
+          lineOfSight(s, d, p)
+        )
+          hurt(s, p, 15, "Drone shock shot");
+      }
+    }
+  } else if (
+    tracking &&
+    !d.shotCooldown &&
+    distance(d, tracked) < 240 &&
+    lineOfSight(s, d, tracked)
+  ) {
+    const len = distance(d, tracked) || 1;
+    d.shot = { dx: (tracked.x - d.x) / len, dy: (tracked.y - d.y) / len };
+    d.windup = 0.9;
+  }
   const m = s.monster;
-  if (!m.active) return;
+  if (!m.active) {
+    m.moving = false;
+    return;
+  }
+  const before = { x: m.x, y: m.y };
   m.cooldown = Math.max(0, m.cooldown - dt);
   m.memory = Math.max(0, m.memory - dt);
   const target = active
@@ -434,7 +505,23 @@ export function updateExpedition(s, dt, active) {
     }
     follow(s, m, 165, dt);
   }
+  const travelled = distance(before, m);
+  m.moving = travelled > 0.01;
+  if (m.moving) m.facing = Math.atan2(m.y - before.y, m.x - before.x);
+  m.gait = (m.gait || 0) + travelled * 0.09;
   for (const p of active)
     if (p.x > 8 * TILE && distance(p, m) < 34)
       hurt(s, p, m.charge > 0 ? 45 : 30);
+}
+
+export function creatureVisualState(m) {
+  return !m.active
+    ? "sleeping"
+    : m.windup > 0
+      ? "bracing"
+      : m.charge > 0
+        ? "lunging"
+        : m.moving
+          ? "crawling"
+          : "searching";
 }

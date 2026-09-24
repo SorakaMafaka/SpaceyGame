@@ -1,3 +1,4 @@
+import { hazardState } from "./expedition.js";
 // Shared by the UI and host so tooltip promises match validated actions.
 export function interactions(s, p) {
   if (!p?.alive || !p.connected || !["salvage", "escape"].includes(s.phase))
@@ -219,14 +220,82 @@ export function interactions(s, p) {
       `${i.value} credits · ${i.w}×${i.h} cargo space. Pick up into your inventory.`,
       "pickup",
     );
-  return objects;
+  for (const [n, d] of s.debris.entries())
+    objects.push({
+      id: "debris-" + n,
+      x: d.x,
+      y: d.y,
+      range: 85,
+      near: Math.hypot(p.x - d.x, p.y - d.y) < 85,
+      title: "Loose metal · NOISE HAZARD",
+      description:
+        "Stepping on these scraps makes noise, attracts the drone and adds 10 disturbance. Walk around them. They are not collectible.",
+      command: "inspect",
+      reason: "Avoid stepping on it.",
+      hitW: 29,
+      hitH: 29,
+      category: "HAZARD",
+    });
+  for (const [n, h] of s.hazards.entries()) {
+    const state = hazardState(s, h);
+    objects.push({
+      id: "hazard-" + n,
+      x: h.x,
+      y: h.y,
+      near: true,
+      range: 0,
+      title:
+        (h.kind === "scanner" ? "Crossing beam" : "Steam vent") +
+        " · " +
+        state.toUpperCase(),
+      description:
+        h.kind === "scanner"
+          ? "Green is safe. Amber warns before the red beam activates. Crossing red deals 10 HP damage and raises an alarm. Hold E at SHUTTERS to disable it, with 6 seconds to cross after release."
+          : "Inactive during salvage. During escape: amber warns, then steam deals 20 HP damage. Wait for it to clear.",
+      command: "inspect",
+      reason:
+        state === "safe"
+          ? "Safe to cross now."
+          : state === "warning"
+            ? "About to activate — wait."
+            : "DANGER — do not cross.",
+      hitW: h.kind === "scanner" ? 16 : 50,
+      hitH: h.kind === "scanner" ? h.length : 50,
+      category: "HAZARD",
+    });
+  }
+  objects.push({
+    id: "drone",
+    x: s.drone.x,
+    y: s.drone.y,
+    near: true,
+    range: 0,
+    title: "Security drone · " + s.drone.mode.toUpperCase(),
+    description:
+      "Stay outside the sight cone. At full detection the drone raises an alarm and pursues you. Its red aiming line warns before a 15-HP shock shot. Sidestep or get behind a wall.",
+    command: "inspect",
+    reason: "Break line of sight to escape pursuit.",
+    hitW: 24,
+    hitH: 24,
+    category: "THREAT",
+  });
+  return objects.map((o) => ({
+    ...o,
+    category:
+      o.category ||
+      (o.command === "pickup"
+        ? "LOOT"
+        : o.id.startsWith("cell-")
+          ? "MISSION ITEM"
+          : "CONTROL"),
+  }));
 }
 export function selectInteraction(s, p, target) {
   const list = interactions(s, p);
   if (target) return list.find((i) => i.id === target) || null;
   return (
     list
-      .filter((i) => i.near)
+      .filter((i) => i.near && i.command !== "inspect")
       .sort(
         (a, b) =>
           Number(!!a.reason) - Number(!!b.reason) ||
@@ -235,6 +304,9 @@ export function selectInteraction(s, p, target) {
   );
 }
 export function instruction(i) {
+  if (i.command === "inspect") return i.reason;
+  if (i.near && !i.reason && i.command === "pickup")
+    return "Press E to pick up";
   return !i.near
     ? "Move closer to interact."
     : i.reason || `${i.hold ? "Hold" : "Press"} E to ${i.hold ? "use" : "use"}`;

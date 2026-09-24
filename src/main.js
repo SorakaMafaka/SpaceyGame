@@ -58,7 +58,7 @@ let state = createGame(),
   fatal = false,
   lastHostMessage = performance.now();
 document.querySelector("#app").innerHTML =
-  `<div id="lobby"><nav><span class="brand-mark">◈</span><b>SALVAGE LEAGUE</b><span class="version">THE PALE RELAY / 03</span></nav><main class="landing"><div class="eyebrow">OUTER RIM SALVAGE DIVISION</div><h1>Good crew.<br>Bad <em>odds.</em></h1><p class="intro">Four scavengers. One sleeping station.<br>Work together to get rich. Get yourself out alive.</p><div class="features"><span>01 / SALVAGE</span><span>02 / AWAKEN</span><span>03 / ABANDON</span></div><section class="lobby-card"><label for="name">CALLSIGN</label><input id="name" maxlength="18" value="${escape(localStorage.getItem("salvage-name") || "Rook")}" autocomplete="off"><div class="buttons"><button id="host" class="primary">HOST EXPEDITION <span>↗</span></button><button id="practice">SOLO RECON</button></div><div class="join-line"><input id="code" maxlength="8" placeholder="ROOM CODE" aria-label="Room code"><button id="join">JOIN CREW →</button></div><p id="status">Browser hosted · 1–4 players · Keyboard & mouse</p></section><div class="brief"><b>THE CONTRACT</b><p>Recover valuable salvage. Disturb the station at your own risk. Only the richest survivor wins.</p></div></main><div class="hero-art" aria-hidden="true"><div class="art-label">VESSEL 09–K<br><strong>THE PALE RELAY</strong><br><span>STATUS: DORMANT</span></div></div><footer>NO RESCUE. NO REFUNDS. <span>Headphones recommended. Friends negotiable.</span></footer></div><div id="game" hidden><canvas id="world"></canvas><header class="hud"><div><b>◈ SALVAGE LEAGUE</b><small id="sector">THE PALE RELAY / 09–K</small></div><div class="threat"><div><span id="phase">STATION DORMANT</span><b id="meter-label">0%</b></div><div class="meter"><i id="meter"></i></div></div><div class="cargo-summary"><b id="credits">0 CR</b><small id="load">0 / 40 CARGO CELLS</small></div></header><aside id="crew"></aside><aside id="objectives"></aside><button id="sound">SOUND ON</button><div id="room-panel" class="panel"><div class="eyebrow">CREW MANIFEST</div><h2>Prepare to board.</h2><p>Room <b id="room-code"></b> <button id="copy">COPY</button></p><div id="roster"></div><p id="lobby-help"></p><button id="start" class="primary">DEPLOY CREW →</button></div><section id="inventory" class="panel" hidden><div class="inv-title"><div><div class="eyebrow">PERSONAL CARGO</div><h2>Make it fit.</h2></div><button id="close-inv">✕</button></div><p>Drag or select an item, then click a cell. <b>R</b> rotates.</p><div id="grid"></div><div class="inv-bottom"><span id="item-info">Select cargo to inspect</span><button id="drop">DROP ITEM</button></div><small>The station does not wait while you pack.</small></section><div id="hover-tip" role="tooltip" hidden></div><div id="prompt"></div><div id="notice"></div><div id="events"></div><div id="controls"><span><kbd>WASD</kbd> Move</span><span><kbd>E</kbd> Use / hold</span><span>Hover objects for details</span><span><kbd>TAB</kbd> Cargo</span></div><section id="results" class="panel" hidden></section><button id="leave">LEAVE RUN</button></div>`;
+  `<div id="lobby"><nav><span class="brand-mark">◈</span><b>SALVAGE LEAGUE</b><span class="version">THE PALE RELAY / 03</span></nav><main class="landing"><div class="eyebrow">OUTER RIM SALVAGE DIVISION</div><h1>Good crew.<br>Bad <em>odds.</em></h1><p class="intro">Four scavengers. One sleeping station.<br>Work together to get rich. Get yourself out alive.</p><div class="features"><span>01 / SALVAGE</span><span>02 / AWAKEN</span><span>03 / ABANDON</span></div><section class="lobby-card"><label for="name">CALLSIGN</label><input id="name" maxlength="18" value="${escape(localStorage.getItem("salvage-name") || "Rook")}" autocomplete="off"><div class="buttons"><button id="host" class="primary">HOST EXPEDITION <span>↗</span></button><button id="practice">SOLO RECON</button></div><div class="join-line"><input id="code" maxlength="8" placeholder="ROOM CODE" aria-label="Room code"><button id="join">JOIN CREW →</button></div><p id="status">Browser hosted · 1–4 players · Keyboard & mouse</p></section><div class="brief"><b>THE CONTRACT</b><p>Recover valuable salvage. Disturb the station at your own risk. Only the richest survivor wins.</p></div></main><div class="hero-art" aria-hidden="true"><div class="art-label">VESSEL 09–K<br><strong>THE PALE RELAY</strong><br><span>STATUS: DORMANT</span></div></div><footer>NO RESCUE. NO REFUNDS. <span>Headphones recommended. Friends negotiable.</span></footer></div><div id="game" hidden><canvas id="world"></canvas><header class="hud"><div><b>◈ SALVAGE LEAGUE</b><small id="sector">THE PALE RELAY / 09–K</small></div><div id="vitals"><div><span>HEALTH</span><strong id="hp-text">100 / 100 HP</strong></div><div class="health-track"><i id="hp-fill"></i></div><small id="hp-state">SUIT INTEGRITY NORMAL</small></div><div class="threat"><div><span id="phase">STATION DORMANT</span><b id="meter-label">0%</b></div><div class="meter"><i id="meter"></i></div></div><div class="cargo-summary"><b id="credits">0 CR</b><small id="load">0 / 40 CARGO CELLS</small></div></header><aside id="crew"></aside><aside id="objectives"></aside><button id="sound">SOUND ON</button><div id="room-panel" class="panel"><div class="eyebrow">CREW MANIFEST</div><h2>Prepare to board.</h2><p>Room <b id="room-code"></b> <button id="copy">COPY</button></p><div id="roster"></div><p id="lobby-help"></p><button id="start" class="primary">DEPLOY CREW →</button></div><section id="inventory" class="panel" hidden><div class="inv-title"><div><div class="eyebrow">PERSONAL CARGO</div><h2>Make it fit.</h2></div><button id="close-inv">✕</button></div><p>Drag or select an item, then click a cell. <b>R</b> rotates.</p><div id="grid"></div><div class="inv-bottom"><span id="item-info">Select cargo to inspect</span><button id="drop">DROP ITEM</button></div><small>The station does not wait while you pack.</small></section><div id="hover-tip" role="tooltip" hidden></div><div id="threat-warning" role="status"></div><div id="prompt"></div><div id="notice"></div><div id="events"></div><div id="controls"><span><kbd>WASD</kbd> Move</span><span><kbd>E</kbd> Use / hold</span><span>Hover objects for details</span><span><kbd>TAB</kbd> Cargo</span></div><section id="results" class="panel" hidden></section><button id="leave">LEAVE RUN</button></div>`;
 const canvas = $("world"),
   ctx = canvas.getContext("2d");
 let width = innerWidth,
@@ -351,13 +351,41 @@ function hud() {
   $("meter").style.width = state.disturbance + "%";
   $("meter").style.background =
     state.phase === "escape" ? "#ff6577" : "#62dfba";
+  $("hp-text").textContent = `${p.hp} / 100 HP`;
+  $("hp-fill").style.width = p.hp + "%";
+  $("vitals").dataset.severity = !p.alive
+    ? "lost"
+    : p.hp <= 30
+      ? "critical"
+      : p.hp <= 60
+        ? "hurt"
+        : "healthy";
+  $("hp-state").textContent = !p.alive
+    ? "SIGNAL LOST"
+    : p.lastDamage && state.time - p.lastDamage.time < 3
+      ? `−${p.lastDamage.amount} · ${p.lastDamage.source}`
+      : p.hp <= 30
+        ? "CRITICAL — GET TO SAFETY"
+        : "SUIT INTEGRITY";
+  $("game").classList.toggle("damage-flash", p.hit > 0.8);
+  const drone = state.drone;
+  $("threat-warning").textContent =
+    !p.alive || p.aboard
+      ? ""
+      : drone.targetId === p.id && drone.pursuit > 0
+        ? drone.windup > 0
+          ? "SHOCK SHOT INCOMING — SIDESTEP OR TAKE COVER"
+          : "DRONE PURSUING — BREAK LINE OF SIGHT"
+        : p.detection > 0
+          ? `DRONE DETECTION ${Math.round(p.detection)}% — LEAVE THE SIGHT CONE`
+          : "";
   $("credits").textContent = value(p).toLocaleString() + " CR";
   $("load").textContent =
     `${p.inventory.reduce((n, i) => n + i.w * i.h, 0)} / 40 CARGO CELLS`;
   $("crew").innerHTML = state.players
     .map(
       (q) =>
-        `<div class="crew-member"><i style="background:${q.color}"></i><span>${escape(q.name)}${q.id === myId ? " / YOU" : ""}</span><small>${!q.connected ? "OFFLINE" : !q.alive ? "LOST" : q.aboard ? "ABOARD" : q.hp + " HP" + (q.detection > 0 ? " / " + Math.round(q.detection) + "% SEEN" : "")}</small></div>`,
+        `<div class="crew-member"><i style="background:${q.color}"></i><span>${escape(q.name)}${q.id === myId ? " / YOU" : ""}</span><small>${!q.connected ? "OFFLINE" : !q.alive ? "LOST" : q.aboard ? "ABOARD" : q.hp + " HP" + (q.detection > 0 ? " / " + Math.round(q.detection) + "% SEEN" : "")}</small><div class="crew-hp"><i style="width:${q.hp}%;background:${q.hp <= 30 ? "#ed756c" : q.color}"></i></div></div>`,
     )
     .join("");
   $("events").innerHTML = state.logs
@@ -366,10 +394,10 @@ function hud() {
     .join("");
   if (!fatal) $("notice").textContent = p.noteUntil > state.time ? p.note : "";
   const target = hovered() || selectInteraction(state, p);
-  $("prompt").textContent = !p.alive
+  $("prompt").innerHTML = !p.alive
     ? "SIGNAL LOST · Spectating the remaining crew"
     : target
-      ? `${target.title} · ${instruction(target)}`
+      ? `<b>${escape(target.category || "CONTROL")} · ${escape(target.title)}</b><span>${escape(target.description)}</span><strong>${escape(instruction(target))}</strong>`
       : "Explore the station. Get close and hover over objects to interact.";
   $("objectives").innerHTML =
     `<b>${state.phase === "escape" ? "EVACUATE" : "EXPEDITION OBJECTIVES"}</b><div>${state.sockets.filter((c) => c.installed).length}/2 vault circuits restored</div><div>${state.core.taken ? "Core recovered" : state.core.unlocked ? "Core restraints released" : "Release the two vault restraints"}</div><div>Shortcut: ${state.prepared.maintenance ? "open" : "not prepared"}</div><div>Emergency route: ${state.prepared.circuit || "choose at junction"}</div><small>${state.phase === "escape" ? "Watch for warning beams. Reach the shuttle." : "Noise raises disturbance. Break line of sight to evade the drone."}</small>`;
@@ -438,7 +466,8 @@ function hovered() {
       .filter((i) => {
         const door = state.doors.find((d) => d.id === i.id);
         const rx =
-          i.id === "shuttle"
+          i.hitW ??
+          (i.id === "shuttle"
             ? 74
             : door
               ? door.axis === "h"
@@ -446,9 +475,10 @@ function hovered() {
                 : 24
               : i.id === "lift"
                 ? 30
-                : 18;
+                : 18);
         const ry =
-          i.id === "shuttle"
+          i.hitH ??
+          (i.id === "shuttle"
             ? 53
             : door
               ? door.axis === "h"
@@ -456,7 +486,7 @@ function hovered() {
                 : 48
               : i.id === "lift"
                 ? 30
-                : 18;
+                : 18);
         return Math.abs(x - i.x) <= rx && Math.abs(y - i.y) <= ry;
       })
       .sort(
@@ -470,7 +500,7 @@ function updateHover() {
   tip.hidden = !target;
   canvas.style.cursor = target ? "help" : "default";
   if (!target) return;
-  tip.innerHTML = `<strong>${escape(target.title)}</strong><p>${escape(target.description)}</p><b>${escape(instruction(target))}</b>`;
+  tip.innerHTML = `<small>${escape(target.category || "CONTROL")}</small><strong>${escape(target.title)}</strong><p>${escape(target.description)}</p><b>${escape(instruction(target))}</b>`;
   tip.style.left = Math.max(10, Math.min(width - 300, pointer.x + 18)) + "px";
   tip.style.top =
     Math.max(95, Math.min(height - tip.offsetHeight - 65, pointer.y + 18)) +
@@ -494,7 +524,11 @@ function draw(now) {
   drawStation(ctx, state);
   const sh = state.shuttle;
   text("EXTRACTION", sh.x, sh.y + 65, 10, "#b2dbba", "center");
-  for (const i of state.loot) drawLoot(ctx, i);
+  for (const i of state.loot) {
+    drawLoot(ctx, i);
+    if (distance(target, i) < 90)
+      text(`LOOT · ${i.value} CR`, i.x, i.y + 27, 9, "#edca85", "center");
+  }
   drawExpedition(ctx, state, text, rect, target);
   drawCreature(ctx, state.monster, state.time);
   for (const [i, q] of state.players.entries()) {
@@ -524,7 +558,7 @@ function draw(now) {
       ctx.lineTo(x + sx * 17, y + sy * 26);
       ctx.stroke();
     }
-    if (focus.near && !focus.reason) {
+    if (focus.near && !focus.reason && focus.command !== "inspect") {
       rect(x - 9, y - 43, 18, 17, "#17252bf0");
       text("E", x, y - 30, 12, "#f2dbab", "center");
     }

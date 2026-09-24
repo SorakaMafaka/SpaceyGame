@@ -26,7 +26,7 @@ Host an expedition and share the eight-character room code. Up to three friends 
 
 **Premature awakening:** machinery alarms, loose metal underfoot, security beams and full drone detection raise disturbance. Quiet play slowly reduces it; time alone and ordinary loot pickup never wake the creature. At 100%, it wakes immediately and the core locks down. Escape with what you have. Mandatory vault seals release, so no one needs a living teammate to get out.
 
-**Stealth:** avoid the drone's visible sight cone. Detection builds gradually and falls when you break sight. Noise rings show the location and severity of sounds; the drone investigates them. Ordinary walking has no noise penalty.
+**Stealth:** avoid the drone's visible sight cone. Full detection raises an alarm and starts pursuit. A red targeting line warns for 0.9 seconds before a 15-HP shock shot; sidestep the line or get behind a wall. Losing sight for five seconds ends pursuit. Detection builds gradually and falls when you break sight. Noise rings show the location and severity of sounds; the drone investigates them. Ordinary walking has no noise penalty.
 
 **Scoring:** carried salvage scores only if you survive aboard. The core is worth 1,200 credits to its carrier; extracting it also gives **every survivor 200 credits**. Ties share victory. Dead crew drop cargo. A disconnected player drops cargo unless already aboard.
 
@@ -49,3 +49,9 @@ PeerJS Cloud provides connection signaling; the host browser runs the authoritat
 ## Current scope
 
 One handcrafted station, one security drone, one ancient creature, spatial inventory, cooperative machinery, optional route preparation and competitive extraction. No combat, procedural generation, permanent progression or built-in voice chat. Use a call for coordination. In-game pixel sprites and station surfaces are code-drawn; the title illustration was generated with imagegen. Sound is synthesized. See [art direction and asset provenance](docs/ART_DIRECTION.md). Match balance still needs human four-player playtesting.
+
+## Reading the station
+
+Health is always shown numerically with a bar in the top HUD; damage identifies its source and critical health turns red. Crew cards have individual health bars. The creature faces its travel direction, cycles its legs when crawling, braces before lunging and stretches during the attack.
+
+Small floor objects with gold pickup markers are **LOOT**. Larger mounted devices with blue bases are **CONTROLS**. Cyan power cells are **MISSION ITEMS**. Hover loose metal, beams, vents or the drone for an explanation; nearby usable objects also show a full description in the action panel. Loose metal is a noise hazard, not loot. Beam emitters show green safe, amber warning and red active states.

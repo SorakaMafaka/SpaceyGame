@@ -1,3 +1,4 @@
+import { creatureVisualState } from "./expedition.js";
 import { MAP, ROOMS, TILE, COLS, ROWS } from "./game.js";
 const ink = "#10151e",
   steel = "#64747a",
@@ -270,7 +271,16 @@ export function itemIcon(i) {
 }
 export function drawLoot(ctx, i) {
   ellipse(ctx, i.x, i.y + 12, 14, 6, "#050b1199");
-  drawSprite(ctx, itemKind(i), i.x, i.y, i.color, 32);
+  ctx.strokeStyle = "#d9ba77";
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath();
+  ctx.ellipse(i.x, i.y + 10, 18, 8, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  drawSprite(ctx, itemKind(i), i.x, i.y - 3, i.color, 26);
+  box(ctx, i.x + 10, i.y - 15, 7, 7, "#dbb66c");
+  box(ctx, i.x + 12, i.y - 13, 3, 3, "#57472c");
 }
 function stationLayer() {
   if (tiles.has("station")) return tiles.get("station");
@@ -526,19 +536,45 @@ export function drawCrew(ctx, p, time, isMe, index) {
   }
 }
 export function drawCreature(ctx, m, time) {
+  const pose = creatureVisualState(m);
+  const crawling = pose === "crawling",
+    lunging = pose === "lunging",
+    bracing = pose === "bracing";
+  const gait = m.gait || 0;
   const breath = Math.sin(time * 1.8) * 2;
   ctx.save();
   ctx.translate(m.x, m.y);
-  const angle = m.active ? (m.aim ? Math.atan2(m.aim.y, m.aim.x) : 0) : -0.4;
+  const angle = !m.active
+    ? -0.4
+    : (bracing || lunging) && m.aim
+      ? Math.atan2(m.aim.y, m.aim.x)
+      : m.facing || 0;
   ctx.rotate(angle);
   ellipse(ctx, 3, 13, 47, 25, "#050911aa");
   const plates = m.active ? 5 : 9;
   for (let j = plates - 1; j >= 0; j--) {
     const a = m.active ? Math.PI : (j / plates) * Math.PI * 1.8;
-    const x = m.active ? -j * 6 : Math.cos(a) * (28 + breath),
-      y = m.active ? Math.sin(time * 7 - j) * 3 : Math.sin(a) * 27;
+    const x = m.active
+        ? -j * (lunging ? 9 : bracing ? 3.5 : 7)
+        : Math.cos(a) * (28 + breath),
+      y = m.active
+        ? crawling
+          ? Math.sin(gait - j * 0.9) * 5
+          : bracing
+            ? Math.sin(time * 20) * 1.5
+            : Math.sin(time * 2 - j) * 1.5
+        : Math.sin(a) * 27;
     const r = 16 - j * 0.7;
     for (const side of [-1, 1]) {
+      const step = crawling
+        ? Math.sin(gait + j * 1.6 + (side === 1 ? Math.PI : 0)) * 8
+        : lunging
+          ? -7
+          : bracing
+            ? 5
+            : 0;
+      ctx.save();
+      ctx.translate(step, side * (bracing ? -4 : lunging ? 4 : 0));
       poly(
         ctx,
         [
@@ -558,6 +594,7 @@ export function drawCreature(ctx, m, time) {
         ],
         "#b0a58f",
       );
+      ctx.restore();
     }
     poly(
       ctx,
@@ -588,7 +625,7 @@ export function drawCreature(ctx, m, time) {
     box(ctx, x - 1, y - r + 5, 3, r * 1.4, "#7d7271");
     box(ctx, x - 7, y - 7, 5, 3, "#eee0b8");
   }
-  const hx = m.active ? 13 : 24,
+  const hx = m.active ? (lunging ? 23 : bracing ? 6 : 13) : 24,
     hy = m.active ? 0 : -12;
   poly(
     ctx,

@@ -1097,3 +1097,154 @@ footer span {
     display: none;
   }
 }
+#vitals {
+  width: 190px;
+  flex-shrink: 0;
+  margin: 0 18px;
+}
+#vitals > div:first-child {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+#vitals span {
+  font-size: 10px;
+  color: #bbc9b8;
+}
+#hp-text {
+  font-size: 19px;
+  color: #d9edd1;
+  white-space: nowrap;
+}
+.health-track {
+  height: 10px;
+  background: #10191f;
+  border: 1px solid #728176;
+  margin-top: 7px;
+}
+.health-track i {
+  display: block;
+  height: 100%;
+  background: #9cd4a0;
+  transition: width 0.15s;
+}
+#hp-state {
+  font-size: 9px;
+  min-height: 11px;
+}
+#vitals[data-severity="critical"] #hp-text,
+#vitals[data-severity="lost"] #hp-text {
+  color: #ff8575;
+}
+#vitals[data-severity="critical"] .health-track i {
+  background: #f27567;
+}
+#vitals[data-severity="hurt"] .health-track i {
+  background: #e8bd76;
+}
+.crew-member {
+  position: relative;
+  padding-bottom: 14px;
+}
+.crew-hp {
+  position: absolute;
+  bottom: 4px;
+  left: 10px;
+  right: 10px;
+  height: 3px;
+  background: #33434a;
+}
+.crew-hp i {
+  display: block;
+  height: 3px;
+  border-radius: 0;
+}
+#threat-warning {
+  position: absolute;
+  left: 50%;
+  top: 103px;
+  transform: translateX(-50%);
+  padding: 10px 16px;
+  background: #551e20ee;
+  border: 1px solid #fa8d72;
+  color: #ffdfac;
+  font-size: 12px;
+  font-weight: bold;
+  text-align: center;
+  max-width: 480px;
+  pointer-events: none;
+}
+#threat-warning:empty {
+  display: none;
+}
+#notice {
+  top: 151px;
+}
+.damage-flash::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 90px #dd463a77;
+}
+#prompt {
+  width: 430px;
+  max-width: calc(100vw - 490px);
+  padding: 11px 15px;
+  text-align: left;
+}
+#prompt b,
+#prompt span,
+#prompt strong {
+  display: block;
+}
+#prompt b {
+  font-size: 11px;
+  color: #e5cd9a;
+}
+#prompt span {
+  margin: 5px 0;
+  font-size: 10px;
+  line-height: 1.6;
+  color: #c6d1c2;
+}
+#prompt strong {
+  font-size: 11px;
+  color: #a5ddb2;
+}
+#hover-tip small {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  color: #a0b8c4;
+  margin-bottom: 3px;
+}
+@media (max-width: 1300px) {
+  .threat {
+    width: 240px;
+  }
+  #vitals {
+    width: 175px;
+    margin: 0 8px;
+  }
+  .hud {
+    padding: 13px;
+  }
+  #hp-text {
+    font-size: 17px;
+  }
+}
+@media (max-height: 750px) {
+  #events {
+    max-width: 220px;
+    bottom: 150px;
+  }
+  #prompt {
+    bottom: 66px;
+    font-size: 10px;
+  }
+  #prompt span {
+    font-size: 9px;
+  }
+}
